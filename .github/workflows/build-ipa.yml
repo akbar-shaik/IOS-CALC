@@ -23,29 +23,28 @@ jobs:
 
       - name: Generate native iOS project & Install Pods
         run: |
-          npx expo prebuild --platform ios --clean
-          npx pod-install ios
-          echo "=== WORKSPACES IN IOS ==="
-          find ios -name "*.xcworkspace"
-          echo "=== PROJECTS IN IOS ==="
-          find ios -name "*.xcodeproj"
+          echo "### 1. Expo Prebuild" >> $GITHUB_STEP_SUMMARY
+          npx expo prebuild --platform ios --clean 2>&1 | tee -a $GITHUB_STEP_SUMMARY
+
+          echo "### 2. CocoaPods Install" >> $GITHUB_STEP_SUMMARY
+          cd ios
+          pod install --repo-update 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
+          cd ..
+
+          echo "### 3. iOS Directory Contents" >> $GITHUB_STEP_SUMMARY
+          find ios -maxdepth 2 >> $GITHUB_STEP_SUMMARY
 
       - name: Build iOS Archive (Unsigned)
         run: |
           if [ -d "ios/Calculator.xcworkspace" ]; then
-            BUILD_FLAG="-workspace ios/Calculator.xcworkspace"
+            TARGET="-workspace ios/Calculator.xcworkspace"
           else
-            WORKSPACE=$(find ios -name "*.xcworkspace" -not -path "*/project.xcworkspace" | head -n 1)
-            if [ -n "$WORKSPACE" ]; then
-              BUILD_FLAG="-workspace $WORKSPACE"
-            else
-              BUILD_FLAG="-project ios/Calculator.xcodeproj"
-            fi
+            TARGET="-project ios/Calculator.xcodeproj"
           fi
-          echo "Executing xcodebuild with: $BUILD_FLAG"
+          echo "### 4. Xcode Build ($TARGET)" >> $GITHUB_STEP_SUMMARY
 
           xcodebuild \
-            $BUILD_FLAG \
+            $TARGET \
             -scheme Calculator \
             -configuration Release \
             -destination 'generic/platform=iOS' \
@@ -53,13 +52,13 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            archive
+            archive 2>&1 | tee -a $GITHUB_STEP_SUMMARY
 
       - name: Package IPA
         run: |
           mkdir -p Payload
           APP_PATH=$(find build/App.xcarchive/Products/Applications -name "*.app" | head -n 1)
-          echo "Packaging app bundle from: $APP_PATH"
+          echo "Packaging app bundle from: $APP_PATH" >> $GITHUB_STEP_SUMMARY
           cp -r "$APP_PATH" Payload/
           zip -r Calculator.ipa Payload
 
