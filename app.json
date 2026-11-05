@@ -9,7 +9,10 @@
     "backgroundColor": "#000000",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.calculator"
+      "bundleIdentifier": "com.anonymous.calculator",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -26,6 +29,11 @@
     },
     "plugins": [
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "a7457921-6915-489a-8fba-bc1346996e41"
+      }
+    }
   }
 }
