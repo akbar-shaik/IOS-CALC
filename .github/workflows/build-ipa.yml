@@ -23,16 +23,10 @@ jobs:
 
       - name: Generate native iOS project & Install Pods
         run: |
-          echo "### 1. Expo Prebuild" >> $GITHUB_STEP_SUMMARY
-          npx expo prebuild --platform ios --clean 2>&1 | tee -a $GITHUB_STEP_SUMMARY
-
-          echo "### 2. CocoaPods Install" >> $GITHUB_STEP_SUMMARY
+          npx expo prebuild --platform ios --clean
           cd ios
-          pod install --repo-update 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
+          pod install --repo-update
           cd ..
-
-          echo "### 3. iOS Directory Contents" >> $GITHUB_STEP_SUMMARY
-          find ios -maxdepth 2 >> $GITHUB_STEP_SUMMARY
 
       - name: Build iOS Archive (Unsigned)
         run: |
@@ -41,7 +35,7 @@ jobs:
           else
             TARGET="-project ios/Calculator.xcodeproj"
           fi
-          echo "### 4. Xcode Build ($TARGET)" >> $GITHUB_STEP_SUMMARY
+          echo "### Xcode Build ($TARGET)" >> $GITHUB_STEP_SUMMARY
 
           xcodebuild \
             $TARGET \
@@ -52,15 +46,22 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            archive 2>&1 | tee -a $GITHUB_STEP_SUMMARY
+            archive
 
       - name: Package IPA
         run: |
+          APP_PATH=$(find . -name "*.app" -path "*Products/Applications*" | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            APP_PATH=$(find . -name "*.app" -not -path "*/Pods*" | head -n 1)
+          fi
+          echo "### Packaging IPA" >> $GITHUB_STEP_SUMMARY
+          echo "Found app bundle at: $APP_PATH" >> $GITHUB_STEP_SUMMARY
+
+          rm -rf Payload Calculator.ipa
           mkdir -p Payload
-          APP_PATH=$(find build/App.xcarchive/Products/Applications -name "*.app" | head -n 1)
-          echo "Packaging app bundle from: $APP_PATH" >> $GITHUB_STEP_SUMMARY
-          cp -r "$APP_PATH" Payload/
-          zip -r Calculator.ipa Payload
+          cp -R "$APP_PATH" Payload/
+          zip -r -y Calculator.ipa Payload
+          ls -lh Calculator.ipa >> $GITHUB_STEP_SUMMARY
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
