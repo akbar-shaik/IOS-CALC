@@ -21,23 +21,31 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate native iOS project
+      - name: Generate native iOS project & Install Pods
         run: |
           npx expo prebuild --platform ios --clean
-          echo "Contents of ios directory:"
-          ls -la ios/
+          npx pod-install ios
+          echo "=== WORKSPACES IN IOS ==="
+          find ios -name "*.xcworkspace"
+          echo "=== PROJECTS IN IOS ==="
+          find ios -name "*.xcodeproj"
 
       - name: Build iOS Archive (Unsigned)
         run: |
           if [ -d "ios/Calculator.xcworkspace" ]; then
-            WORKSPACE="ios/Calculator.xcworkspace"
+            BUILD_FLAG="-workspace ios/Calculator.xcworkspace"
           else
-            WORKSPACE=$(find ios -maxdepth 1 -name "*.xcworkspace" | head -n 1)
+            WORKSPACE=$(find ios -name "*.xcworkspace" -not -path "*/project.xcworkspace" | head -n 1)
+            if [ -n "$WORKSPACE" ]; then
+              BUILD_FLAG="-workspace $WORKSPACE"
+            else
+              BUILD_FLAG="-project ios/Calculator.xcodeproj"
+            fi
           fi
-          echo "Building workspace: $WORKSPACE with scheme: Calculator"
+          echo "Executing xcodebuild with: $BUILD_FLAG"
 
           xcodebuild \
-            -workspace "$WORKSPACE" \
+            $BUILD_FLAG \
             -scheme Calculator \
             -configuration Release \
             -destination 'generic/platform=iOS' \
