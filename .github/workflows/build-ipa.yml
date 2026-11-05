@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,20 +22,10 @@ jobs:
         run: npm ci
 
       - name: Generate native iOS project
-        run: npx expo prebuild --platform ios --clean --no-install
-
-      - name: Install CocoaPods
-        run: |
-          export LANG=en_US.UTF-8
-          export LC_ALL=en_US.UTF-8
-          cd ios
-          pod install
-          cd ..
+        run: npx expo prebuild --platform ios --clean
 
       - name: Build iOS Archive (Unsigned)
         run: |
-          export LANG=en_US.UTF-8
-          export LC_ALL=en_US.UTF-8
           cd ios
           xcodebuild \
             -workspace Calculator.xcworkspace \
