@@ -24,7 +24,8 @@ jobs:
       - name: Generate native iOS project & Install Pods
         run: |
           npx expo prebuild --platform ios --clean
-          cd ios && pod install || true
+          cd ios
+          pod install --repo-update || true
           cd ..
 
       - name: Build iOS Archive (Unsigned)
@@ -50,11 +51,7 @@ jobs:
       - name: Package IPA
         run: |
           APP_PATH=$(find build -name "*.app" | head -n 1)
-          if [ -z "$APP_PATH" ]; then
-            APP_PATH=$(find . -name "*.app" -not -path "*/Pods*" | head -n 1)
-          fi
           echo "Found app bundle at: $APP_PATH"
-
           rm -rf Payload Calculator.ipa
           mkdir -p Payload
           cp -R "$APP_PATH" Payload/
