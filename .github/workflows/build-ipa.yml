@@ -24,23 +24,27 @@ jobs:
       - name: Generate native iOS project
         run: npx expo prebuild --platform ios --clean
 
-      - name: Build iOS Archive (Unsigned)
+      - name: Build iOS Archive & Package IPA (Unsigned)
         run: |
+          WORKSPACE=$(find ios -name "*.xcworkspace" | head -n 1)
+          SCHEME=$(xcodebuild -workspace "$WORKSPACE" -list -json | node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync(0)); console.log(data.workspace.schemes[0]);")
+          echo "Building workspace: $WORKSPACE with scheme: $SCHEME"
+
           xcodebuild \
-            -workspace ios/Calculator.xcworkspace \
-            -scheme Calculator \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
             -configuration Release \
             -destination 'generic/platform=iOS' \
-            -archivePath build/Calculator.xcarchive \
+            -archivePath build/App.xcarchive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             archive
 
-      - name: Package IPA
-        run: |
           mkdir -p Payload
-          cp -r build/Calculator.xcarchive/Products/Applications/Calculator.app Payload/
+          APP_PATH=$(find build/App.xcarchive/Products/Applications -name "*.app" | head -n 1)
+          echo "Found app bundle at: $APP_PATH"
+          cp -r "$APP_PATH" Payload/
           zip -r Calculator.ipa Payload
 
       - name: Upload IPA Artifact
