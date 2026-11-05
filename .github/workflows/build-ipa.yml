@@ -24,8 +24,7 @@ jobs:
       - name: Generate native iOS project & Install Pods
         run: |
           npx expo prebuild --platform ios --clean
-          cd ios
-          pod install --repo-update
+          cd ios && pod install || true
           cd ..
 
       - name: Build iOS Archive (Unsigned)
@@ -35,7 +34,7 @@ jobs:
           else
             TARGET="-project ios/Calculator.xcodeproj"
           fi
-          echo "### Xcode Build ($TARGET)" >> $GITHUB_STEP_SUMMARY
+          echo "Building with target: $TARGET"
 
           xcodebuild \
             $TARGET \
@@ -50,18 +49,17 @@ jobs:
 
       - name: Package IPA
         run: |
-          APP_PATH=$(find . -name "*.app" -path "*Products/Applications*" | head -n 1)
+          APP_PATH=$(find build -name "*.app" | head -n 1)
           if [ -z "$APP_PATH" ]; then
             APP_PATH=$(find . -name "*.app" -not -path "*/Pods*" | head -n 1)
           fi
-          echo "### Packaging IPA" >> $GITHUB_STEP_SUMMARY
-          echo "Found app bundle at: $APP_PATH" >> $GITHUB_STEP_SUMMARY
+          echo "Found app bundle at: $APP_PATH"
 
           rm -rf Payload Calculator.ipa
           mkdir -p Payload
           cp -R "$APP_PATH" Payload/
           zip -r -y Calculator.ipa Payload
-          ls -lh Calculator.ipa >> $GITHUB_STEP_SUMMARY
+          ls -lh Calculator.ipa
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
